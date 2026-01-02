@@ -18,9 +18,9 @@ function M.open_file_at_line(filename, line)
     local buf = vim.fn.bufadd(filename)
     vim.fn.bufload(buf)
 
-    -- Find a suitable non-terminal window
+    -- Find right split window and non-terminal windows
+    local right_split_win = nil
     local target_win = nil
-    local empty_win = nil
 
     local wins = vim.api.nvim_tabpage_list_wins(0)
     for _, win in ipairs(wins) do
@@ -29,26 +29,26 @@ function M.open_file_at_line(filename, line)
 
         -- Skip terminal windows
         if buftype ~= 'terminal' then
-            -- Check if buffer is empty (no lines or just whitespace)
-            local lines = vim.api.nvim_buf_get_lines(win_buf, 0, -1, false)
-            local is_empty = #lines == 0 or (#lines == 1 and lines[1] == '')
+            -- Check if this is a right split by comparing positions
+            local win_pos = vim.api.nvim_win_get_position(win)
 
-            if is_empty then
-                empty_win = win
+            -- Simple heuristic: if window has a column > 0, it might be a right split
+            if win_pos[2] > 0 then
+                right_split_win = win
             else
                 target_win = win
             end
         end
     end
 
-    -- Use empty window if available, otherwise split a non-terminal window
+    -- Use right split if exists, otherwise create new one
     local new_win
-    if empty_win then
-        -- Load buffer in empty window
-        vim.api.nvim_win_set_buf(empty_win, buf)
-        new_win = empty_win
+    if right_split_win then
+        -- Load buffer in existing right split
+        vim.api.nvim_win_set_buf(right_split_win, buf)
+        new_win = right_split_win
     elseif target_win then
-        -- Split the non-terminal window
+        -- Create new right split
         new_win = vim.api.nvim_open_win(buf, true, {
             split = 'right',
             win = target_win,
@@ -82,7 +82,7 @@ function M.open_file_at_line(filename, line)
         -- Clear extmark after a short delay
         vim.defer_fn(function()
             vim.api.nvim_buf_del_extmark(buf, ns_id, 1)
-        end, 2000)
+        end, 1000)
 
         -- Center the line
         vim.fn.feedkeys('zz', 'n')
