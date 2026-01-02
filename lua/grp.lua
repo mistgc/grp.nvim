@@ -18,9 +18,12 @@ function M.open_file_at_line(filename, line)
     local buf = vim.fn.bufadd(filename)
     vim.fn.bufload(buf)
 
-    -- Find right split window and non-terminal windows
+    -- Find windows by priority
+    local largest_empty_win = nil
+    local max_empty_area = 0
     local right_split_win = nil
-    local target_win = nil
+    local largest_win = nil
+    local max_area = 0
 
     local wins = vim.api.nvim_tabpage_list_wins(0)
     for _, win in ipairs(wins) do
@@ -29,30 +32,50 @@ function M.open_file_at_line(filename, line)
 
         -- Skip terminal windows
         if buftype ~= 'terminal' then
-            -- Check if this is a right split by comparing positions
+            local width = vim.api.nvim_win_get_width(win)
+            local height = vim.api.nvim_win_get_height(win)
+            local area = width * height
             local win_pos = vim.api.nvim_win_get_position(win)
 
-            -- Simple heuristic: if window has a column > 0, it might be a right split
+            -- Check if buffer is empty (no lines or just whitespace)
+            local lines = vim.api.nvim_buf_get_lines(win_buf, 0, -1, false)
+            local is_empty = #lines == 0 or (#lines == 1 and lines[1] == '')
+
+            if is_empty and area > max_empty_area then
+                max_empty_area = area
+                largest_empty_win = win
+            end
+
             if win_pos[2] > 0 then
                 right_split_win = win
-            else
-                target_win = win
+            end
+
+            if area > max_area then
+                max_area = area
+                largest_win = win
             end
         end
     end
 
-    -- Use right split if exists, otherwise create new one
+    -- Priority 1: Use largest empty window
+    local target_win = largest_empty_win
     local new_win
-    if right_split_win then
-        -- Load buffer in existing right split
-        vim.api.nvim_win_set_buf(right_split_win, buf)
-        new_win = right_split_win
-    elseif target_win then
-        -- Create new right split
+
+    -- Priority 2: Use right-side window
+    if not target_win and right_split_win then
+        target_win = right_split_win
+    end
+
+    -- Use the determined window or create new right split
+    if target_win then
+        vim.api.nvim_win_set_buf(target_win, buf)
+        new_win = target_win
+    elseif largest_win then
+        -- Create new right split from largest window
         new_win = vim.api.nvim_open_win(buf, true, {
             split = 'right',
-            win = target_win,
-            width = math.floor(vim.api.nvim_win_get_width(target_win) / 2)
+            win = largest_win,
+            width = math.floor(vim.api.nvim_win_get_width(largest_win) / 2)
         })
     else
         -- Create new window if no suitable window found
