@@ -64,11 +64,27 @@ function M.open_file_at_line(filename, line)
         })
     end
 
-    -- Jump to specific line
-    vim.api.nvim_win_set_cursor(new_win, {tonumber(line), 0})
-
-    -- Center the line
+    -- Wait for buffer to be fully loaded, then move cursor and add extmark
     vim.api.nvim_win_call(new_win, function()
+        local line_num = tonumber(line)
+
+        -- Jump to specific line
+        vim.api.nvim_win_set_cursor(0, {line_num, 0})
+
+        -- Add extmark for visual indication
+        local ns_id = vim.api.nvim_create_namespace('grp_target')
+        vim.api.nvim_buf_set_extmark(buf, ns_id, line_num - 1, 0, {
+            hl_group = 'IncSearch',
+            end_col = #vim.api.nvim_buf_get_lines(buf, line_num - 1, line_num, false)[1] or 0,
+            priority = 1000
+        })
+
+        -- Clear extmark after a short delay
+        vim.defer_fn(function()
+            vim.api.nvim_buf_del_extmark(buf, ns_id, 1)
+        end, 2000)
+
+        -- Center the line
         vim.fn.feedkeys('zz', 'n')
     end)
 end
