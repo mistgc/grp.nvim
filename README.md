@@ -34,9 +34,7 @@ lua require('grp').setup()
 ```lua
 {
   'your-username/grp.nvim',
-  config = function()
-    require('grp').setup()
-  end
+  opts = {}
 }
 ```
 
