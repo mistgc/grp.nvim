@@ -1,7 +1,7 @@
 local M = {}
 
 function M._parse_grep_output(path)
-    local filename, line = string.match(path, '([%.?%w.\\%/]+):(%d+):')
+    local filename, line = string.match(path, '([%w%-%._/]+%.%w+):(%d+):')
     return filename, line
 end
 
