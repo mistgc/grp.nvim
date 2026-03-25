@@ -17,7 +17,7 @@ Using your favorite plugin manager:
 ### Packer
 ```lua
 use {
-  'your-username/grp.nvim',
+  'mistgc/grp.nvim',
   config = function()
     require('grp').setup()
   end
@@ -26,14 +26,14 @@ use {
 
 ### Vim-plug
 ```vim
-Plug 'your-username/grp.nvim'
+Plug 'mistgc/grp.nvim'
 lua require('grp').setup()
 ```
 
 ### Lazy.nvim
 ```lua
 {
-  'your-username/grp.nvim',
+  'mistgc/grp.nvim',
   opts = {}
 }
 ```
